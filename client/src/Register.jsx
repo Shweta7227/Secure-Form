@@ -1,4 +1,4 @@
-import Form from "../components/Form";
+import Home from "./Home";
 
 const Register = () => {
   return (
@@ -8,7 +8,7 @@ const Register = () => {
           Client Details
         </h1>
 
-        <Form />
+        <Home />
       </div>
     </div>
   );
