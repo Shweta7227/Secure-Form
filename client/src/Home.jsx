@@ -1,23 +1,22 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import axios from "axios";
-import ReCAPTCHA from "react-google-recaptcha";
 
-
-function Home()  {
-
+function Home() {
   const navigate = useNavigate();
-  
+
+  // 🔹 Form states
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [countryCode, setCountryCode] = useState("");
+  const [countryCode, setCountryCode] = useState("+91");
   const [mobileNumber, setMobileNumber] = useState("");
   const [gender, setGender] = useState("");
   const [dob, setDob] = useState("");
-  const [age, setAge] = useState("");
-  const [qualification, setQualification] = useState("");
+  const [age, setAge] = useState(null);
+  const [email, setEmail] = useState("");
   const [street, setStreet] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -26,39 +25,52 @@ function Home()  {
   const [ncity, setNewCity] = useState("");
   const [nstate, setNewState] = useState("");
   const [npinCode, setNewPinCode] = useState("");
-  const [pwd, setPwd] = useState("");
-  const [cpwd, setConfPwd] = useState("");
-  // captcha states
+  const [password, setPassword] = useState("");
+  const [confPassword, setConfPassword] = useState("");
+  const [agreement, setAgreement] = useState(false);
+
+  // 🔹 Captcha
   const [captchaQuestion, setCaptchaQuestion] = useState("");
   const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [captchaExpected, setCaptchaExpected] = useState(null);
 
-  const [agreement, setAgreement] = useState(false);
+  // generate captcha on mount
+  useEffect(() => generateCaptcha(), []);
 
-  //captcha checking 
-useEffect(() => {
-  generateCaptcha();
-}, []);
+  const generateCaptcha = () => {
+    const a = Math.floor(Math.random() * 10) + 1;
+    const b = Math.floor(Math.random() * 10) + 1;
+    const ops = ["+", "-"];
+    const op = ops[Math.floor(Math.random() * ops.length)];
+    const result = op === "+" ? a + b : a - b;
+    setCaptchaQuestion(`${a} ${op} ${b}`);
+    setCaptchaExpected(result);
+    setCaptchaAnswer("");
+  };
 
-const generateCaptcha = () => {
-  const a = Math.floor(Math.random() * 10) + 1;
-  const b = Math.floor(Math.random() * 10) + 1;
-  const ops = ["+", "-"];
-  const op = ops[Math.floor(Math.random() * ops.length)];
-
-  let result = op === "+" ? a + b : a - b;
-
-  setCaptchaQuestion(`${a} ${op} ${b}`);
-  setCaptchaExpected(result);
-  setCaptchaAnswer("");
-};
-
-
-  //submit function
+  // 🔹 Submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
-    //check the pwd
-    if (pwd !== cpwd) {
+
+    // ✅ simple validations
+    if (
+      !firstName ||
+      !lastName ||
+      !email ||
+      !mobileNumber ||
+      !gender ||
+      !dob ||
+      !age ||
+      !street ||
+      !city ||
+      !state ||
+      !pinCode
+    ) {
+      alert("Please fill all required fields");
+      return;
+    }
+
+    if (password !== confPassword) {
       alert("Passwords do not match");
       return;
     }
@@ -69,50 +81,49 @@ const generateCaptcha = () => {
       return;
     }
 
-  
-  const formData = new FormData();
-  //media
-  formData.append("profilePhoto", profilePhoto);
-  //Name
-  formData.append("firstName", firstName);
-  formData.append("middleName", middleName);
-  formData.append("lastName", lastName);
-  //contact
-  formData.append("countryCode", countryCode);
-  formData.append("mobileNumber", mobileNumber);
-  //personal details
-  formData.append("gender", gender);
-  formData.append("dob", dob);
-  formData.append("age", age);
-  formData.append("qualification", qualification);
-  //primary address
-  formData.append("street", street);
-  formData.append("city", city);
-  formData.append("userState", userState);
-  formData.append("pinCode", pinCode);
-  //secondary address
-  formData.append("nstreet", nstreet);
-  formData.append("ncity", ncity);
-  formData.append("nstate", nstate);
-  formData.append("npinCode", npinCode);
-  //password hai
-  formData.append("password", pwd);
-  //compliance
-  formData.append("agreement", agreement);
+    try {
+      const formData = new FormData();
+      // Profile photo
+      if (profilePhoto) {
+        formData.append("profilePhoto", profilePhoto);
+      }
+      // Name
+      formData.append("firstName", firstName);
+      formData.append("middleName", middleName);
+      formData.append("lastName", lastName);
+      // Contact
+      formData.append("countryCode", countryCode);
+      formData.append("mobileNumber", mobileNumber);
+      // Personal
+      formData.append("gender", gender);
+      formData.append("dob", dob);
+      formData.append("age", age);
+      // Email
+      formData.append("email", email);
+      // Primary Address
+      formData.append("street", street);
+      formData.append("city", city);
+      formData.append("state", state);
+      formData.append("pinCode", pinCode);
+      // Secondary Address
+      formData.append("nstreet", nstreet);
+      formData.append("ncity", ncity);
+      formData.append("nstate", nstate);
+      formData.append("npinCode", npinCode);
+      // Password & agreement
+      formData.append("password", password);
+      formData.append("agreement", agreement.toString());
 
-  try {
-    await axios.post(
-      "http://localhost:3001/api/users",
-      formData,
-      { headers: { "Content-Type": "multipart/form-data" } }
-    );
-    navigate("/users");
-  } catch (error) {
-    console.error(error);
-    alert("Error saving data");
-  }
+      await axios.post("http://localhost:3001/createUser", formData);
+
+      alert("User created successfully!");
+      navigate("/users");
+    } catch (error) {
+  console.error(error);
+  alert("Error saving data. Check console.");
+  generateCaptcha(); 
+    }
   };
-  
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
@@ -123,7 +134,7 @@ const generateCaptcha = () => {
         <input
           type="file"
           className="w-full rounded-lg border border-gray-300 p-2"
-          required 
+          // required 
           onChange={(e) => setProfilePhoto(e.target.files[0])}
         />
       </div>
@@ -183,29 +194,35 @@ const generateCaptcha = () => {
           </select>
         </div>
       </div>
+      {/* Email */}
 
-      {/* DOB / AGE / QUALIFICATION */}
-      <div className="grid grid-cols-3 gap-4">
+
+      {/* DOB / AGE */}
+      <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col">
           <label className="label">
-            Date of Birth <span className="text-red-500">*</span>
+            Email<span className="text-red-500">*</span>
           </label>
-          <input type="date" className="input" required onChange={(e) => setDob(e.target.value)}/>
+          <input className="input" placeholder="Email" required onChange={(e) => setEmail(e.target.value)}/>
+        </div>
+        <div className="grid grid-cols-2 gap-7">
+          <div className="flex flex-col">
+            <label className="label">
+              Date of Birth <span className="text-red-500">*</span>
+            </label>
+            <input type="date" className="input" required onChange={(e) => setDob(e.target.value)}/>
+          </div>
+
+          <div className="flex flex-col">
+            <label className="label">
+              Age <span className="text-red-500">*</span>
+            </label>
+            <input type="number" className="input" placeholder="Age" required onChange={(e) => setAge(Number(e.target.value))}/>
+          </div>
         </div>
 
-        <div className="flex flex-col">
-          <label className="label">
-            Age <span className="text-red-500">*</span>
-          </label>
-          <input className="input" placeholder="Age" required onChange={(e) => setAge(e.target.value)}/>
-        </div>
 
-        <div className="flex flex-col">
-          <label className="label">
-            Highest Qualification <span className="text-red-500">*</span>
-          </label>
-          <input className="input" placeholder="Qualification" required onChange={(e) => setQualification(e.target.value)}/>
-        </div>
+        
       </div>
 
       {/* ADDRESS (PRIMARY – REQUIRED) */}
@@ -256,7 +273,7 @@ const generateCaptcha = () => {
             className="input"
             placeholder="Enter Password"
             required
-            onChange={(e) => setPwd(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
           />
         </div>
 
@@ -269,7 +286,7 @@ const generateCaptcha = () => {
             className="input"
             placeholder="Confirm Password"
             required
-            onChange={(e) => setConfPwd(e.target.value)}
+            onChange={(e) => setConfPassword(e.target.value)}
           />
         </div>
       </div>
@@ -305,17 +322,17 @@ const generateCaptcha = () => {
 
       {/* ACTION BUTTONS */}
       <div className="flex justify-end gap-4">
-        <button type="button" className="px-6 py-2 rounded-lg border">
+        {/* <button type="button" className="px-6 py-2 rounded-lg border">
           View
-        </button>
+        </button> */}
 
-        <button type="submit" className="px-6 py-2 rounded-lg bg-indigo-600 text-white">
+        <button type="submit" className="px-8 py-4 rounded-lg bg-indigo-600 text-white">
           Save
         </button>
       </div>
 
     </form>
   );
-};
+}
 
 export default Home;
